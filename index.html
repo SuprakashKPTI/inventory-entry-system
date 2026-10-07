@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Details Entry</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header-section">
+            <h1>Inventory Details Entry</h1>
+            <div class="header-actions">
+                <a href="debug.html" class="debug-link">🔍 Debug</a>
+                <a href="admin/login.html" class="admin-link">Admin Panel</a>
+                <button id="logoutBtn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+        
+        <!-- Input Fields Section -->
+        <div class="input-section">
+            <div class="input-group">
+                <label for="customerCode">Select Customer Code:</label>
+                <select id="customerCode" required>
+                    <option value="">-- Select Customer --</option>
+                    <!-- Options will be populated from admin data -->
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label for="region">Region:</label>
+                <select id="region" required disabled>
+                    <option value="">-- Auto-set from Customer --</option>
+                    <!-- Options will be populated from admin data -->
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label for="submittedBy">Submitted By (Enter Name):</label>
+                <input type="text" id="submittedBy" required placeholder="Enter your name">
+            </div>
+            
+            <button id="submitBtn" class="submit-btn">Submit Data</button>
+            <button id="refreshBtn" class="refresh-btn">🔄 Refresh Data</button>
+            <button id="downloadBtn" class="download-btn">📊 Download My Submissions</button>
+        </div>
+        
+        <!-- Data Table Section -->
+        <div class="table-section">
+            <table id="inventoryTable">
+                <thead>
+                    <tr>
+                        <th>ItemID</th>
+                        <th>Description</th>
+                        <th>Grade</th>
+                        <th>Last 4 months Average Booking - Customer</th>
+                        <th>Last 4 months Average Booking - Region</th>
+                        <th>Last 4 months Average Shipping - Customer</th>
+                        <th>Previous Spike data (Month 1) - Customer</th>
+                        <th>Previous Spike data (Month 2) - Customer</th>
+                        <th>Previous Spike data (Month 3) - Customer</th>
+                        <th>Month 1 Spike</th>
+                        <th>Month 2 Spike</th>
+                        <th>Month 3 Spike</th>
+                        <th>Type</th>
+                        <th>Customer</th>
+                        <th>Submitted By</th>
+                        <th>Region</th>
+                        <th>Total Spike</th>
+                        <th>Submit Date</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Rows will be populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script src="azure-config.js"></script>
+    <script src="sharepoint-api.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

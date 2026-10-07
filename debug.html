@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Data Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 20px;
+            background: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .data-item {
+            margin-bottom: 10px;
+        }
+        .data-item strong {
+            display: block;
+            color: #0078d4;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Data Viewer</h1>
+    
+    <div class="section">
+        <h2>localStorage Contents</h2>
+        <button onclick="displayLocalStorage()">Display localStorage</button>
+        <button onclick="clearLocalStorage()">Clear All Data</button>
+        <div id="localStorage-content"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Admin Data Structure</h2>
+        <button onclick="displayAdminData()">Display Admin Data</button>
+        <div id="admin-data-content"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Test Data Loading</h2>
+        <button onclick="testDataLoading()">Test Entry Page Data Loading</button>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        function displayLocalStorage() {
+            const content = document.getElementById('localStorage-content');
+            let html = '<h3>localStorage Keys:</h3>';
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                html += `<div class="data-item"><strong>${key}:</strong><pre>${JSON.stringify(JSON.parse(value), null, 2)}</pre></div>`;
+            }
+            
+            if (localStorage.length === 0) {
+                html += '<p>No data in localStorage</p>';
+            }
+            
+            content.innerHTML = html;
+        }
+        
+        function clearLocalStorage() {
+            if (confirm('Are you sure you want to clear all localStorage data?')) {
+                localStorage.clear();
+                displayLocalStorage();
+                alert('localStorage cleared');
+            }
+        }
+        
+        function displayAdminData() {
+            const content = document.getElementById('admin-data-content');
+            const adminData = localStorage.getItem('inventoryAdminData');
+            
+            if (adminData) {
+                const parsed = JSON.parse(adminData);
+                let html = '<h3>Admin Data Structure:</h3>';
+                html += `<div class="data-item"><strong>Items (${parsed.items?.length || 0}):</strong><pre>${JSON.stringify(parsed.items, null, 2)}</pre></div>`;
+                html += `<div class="data-item"><strong>Customers (${parsed.customers?.length || 0}):</strong><pre>${JSON.stringify(parsed.customers, null, 2)}</pre></div>`;
+                html += `<div class="data-item"><strong>Booking Data:</strong><pre>${JSON.stringify(parsed.bookingData, null, 2)}</pre></div>`;
+                html += `<div class="data-item"><strong>Shipping Data:</strong><pre>${JSON.stringify(parsed.shippingData, null, 2)}</pre></div>`;
+                html += `<div class="data-item"><strong>Current Spike Data (${parsed.currentSpikeData?.length || 0}):</strong><pre>${JSON.stringify(parsed.currentSpikeData, null, 2)}</pre></div>`;
+                html += `<div class="data-item"><strong>Previous Spike Data (${parsed.previousSpikeData?.length || 0}):</strong><pre>${JSON.stringify(parsed.previousSpikeData, null, 2)}</pre></div>`;
+                content.innerHTML = html;
+            } else {
+                content.innerHTML = '<p>No admin data found in localStorage</p>';
+            }
+        }
+        
+        function testDataLoading() {
+            const content = document.getElementById('test-results');
+            const adminData = localStorage.getItem('inventoryAdminData');
+            
+            if (!adminData) {
+                content.innerHTML = '<p style="color: red;">❌ No admin data found. Please add data in admin panel first.</p>';
+                return;
+            }
+            
+            const parsed = JSON.parse(adminData);
+            let html = '<h3>Data Loading Test Results:</h3>';
+            
+            // Test 1: Check if booking data exists
+            if (parsed.bookingData && Object.keys(parsed.bookingData).length > 0) {
+                html += '<p style="color: green;">✅ Booking data exists: ' + Object.keys(parsed.bookingData).length + ' customers</p>';
+                Object.keys(parsed.bookingData).forEach(customerCode => {
+                    const items = Object.keys(parsed.bookingData[customerCode]);
+                    html += `<p>Customer ${customerCode}: ${items.length} items (${items.join(', ')})</p>`;
+                });
+            } else {
+                html += '<p style="color: red;">❌ No booking data found</p>';
+            }
+            
+            // Test 2: Check if shipping data exists
+            if (parsed.shippingData && Object.keys(parsed.shippingData).length > 0) {
+                html += '<p style="color: green;">✅ Shipping data exists: ' + Object.keys(parsed.shippingData).length + ' customers</p>';
+                Object.keys(parsed.shippingData).forEach(customerCode => {
+                    const items = Object.keys(parsed.shippingData[customerCode]);
+                    html += `<p>Customer ${customerCode}: ${items.length} items (${items.join(', ')})</p>`;
+                });
+            } else {
+                html += '<p style="color: red;">❌ No shipping data found</p>';
+            }
+            
+            // Test 3: Check current spike data
+            if (parsed.currentSpikeData && parsed.currentSpikeData.length > 0) {
+                html += '<p style="color: green;">✅ Current spike data exists: ' + parsed.currentSpikeData.length + ' entries</p>';
+                parsed.currentSpikeData.forEach((entry, i) => {
+                    html += `<p>Entry ${i + 1}: Customer=${entry.customer}, Item=${entry.itemID}, M1=${entry.month1}, M2=${entry.month2}, M3=${entry.month3}</p>`;
+                });
+            } else {
+                html += '<p style="color: orange;">⚠️ No current spike data found</p>';
+                if (parsed.spikeData && parsed.spikeData.length > 0) {
+                    html += '<p style="color: blue;">ℹ️ Found spikeData (old structure) with ' + parsed.spikeData.length + ' entries. Data might be in old format.</p>';
+                    html += '<button onclick="migrateSpikeData()">Migrate to New Format</button>';
+                }
+            }
+            
+            // Test 4: Check previous spike data
+            if (parsed.previousSpikeData && parsed.previousSpikeData.length > 0) {
+                html += '<p style="color: green;">✅ Previous spike data exists: ' + parsed.previousSpikeData.length + ' entries</p>';
+            } else {
+                html += '<p style="color: orange;">⚠️ No previous spike data found</p>';
+            }
+            
+            // Test 5: Check data structure
+            html += '<h4>Data Structure Validation:</h4>';
+            if (parsed.bookingData && typeof parsed.bookingData === 'object') {
+                html += '<p style="color: green;">✅ Booking data is an object</p>';
+            } else {
+                html += '<p style="color: red;">❌ Booking data is not an object</p>';
+            }
+            
+            if (parsed.shippingData && typeof parsed.shippingData === 'object') {
+                html += '<p style="color: green;">✅ Shipping data is an object</p>';
+            } else {
+                html += '<p style="color: red;">❌ Shipping data is not an object</p>';
+            }
+            
+            if (parsed.currentSpikeData && Array.isArray(parsed.currentSpikeData)) {
+                html += '<p style="color: green;">✅ Current spike data is an array</p>';
+            } else {
+                html += '<p style="color: red;">❌ Current spike data is not an array</p>';
+            }
+            
+            if (parsed.previousSpikeData && Array.isArray(parsed.previousSpikeData)) {
+                html += '<p style="color: green;">✅ Previous spike data is an array</p>';
+            } else {
+                html += '<p style="color: red;">❌ Previous spike data is not an array</p>';
+            }
+            
+            content.innerHTML = html;
+        }
+        
+        function migrateSpikeData() {
+            const adminData = localStorage.getItem('inventoryAdminData');
+            if (!adminData) {
+                alert('No admin data found');
+                return;
+            }
+            
+            const parsed = JSON.parse(adminData);
+            if (!parsed.spikeData || parsed.spikeData.length === 0) {
+                alert('No old spikeData to migrate');
+                return;
+            }
+            
+            // Migrate old spikeData to currentSpikeData
+            parsed.currentSpikeData = parsed.spikeData;
+            parsed.previousSpikeData = [];
+            delete parsed.spikeData;
+            
+            localStorage.setItem('inventoryAdminData', JSON.stringify(parsed));
+            alert('Spike data migrated successfully! Click "Test Data Loading" to verify.');
+            testDataLoading();
+        }
+        
+        // Auto-display on load
+        displayLocalStorage();
+    </script>
+</body>
+</html>

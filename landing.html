@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory System</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .landing-container {
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 60px 40px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .landing-header h1 {
+            color: #0078d4;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        
+        .landing-header p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        
+        .nav-button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            display: block;
+        }
+        
+        .entry-button {
+            background-color: #0078d4;
+            color: white;
+        }
+        
+        .entry-button:hover {
+            background-color: #005a9e;
+        }
+        
+        .admin-button {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .admin-button:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="landing-container">
+        <div class="landing-header">
+            <h1>Inventory Management System</h1>
+            <p>Select your access level to continue</p>
+        </div>
+        
+        <div class="button-group">
+            <a href="entry-login.html" class="nav-button entry-button">Entry Page Login</a>
+            <a href="admin/login.html" class="nav-button admin-button">Admin Panel Login</a>
+        </div>
+    </div>
+</body>
+</html>

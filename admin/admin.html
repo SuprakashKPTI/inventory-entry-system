@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Admin Panel</title>
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <script>
+        // Check authentication
+        if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
+            window.location.href = 'login.html';
+        }
+        
+        // Check session expiration (30 minutes)
+        const authTime = parseInt(sessionStorage.getItem('adminAuthTime') || '0');
+        const currentTime = Date.now();
+        if (currentTime - authTime > 30 * 60 * 1000) {
+            sessionStorage.removeItem('adminAuthenticated');
+            sessionStorage.removeItem('adminAuthTime');
+            window.location.href = 'login.html';
+        }
+    </script>
+    <div class="admin-container">
+        <header>
+            <div class="header-content">
+                <h1>Inventory Admin Panel</h1>
+                <div class="header-actions">
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                    <a href="../index.html" class="back-link">← Back to Entry Page</a>
+                </div>
+            </div>
+            <nav class="admin-nav">
+                <button class="nav-btn active" data-tab="items">Items</button>
+                <button class="nav-btn" data-tab="customers">Customers</button>
+                <button class="nav-btn" data-tab="booking-data">Booking Data</button>
+                <button class="nav-btn" data-tab="shipping-data">Shipping Data</button>
+                <button class="nav-btn" data-tab="current-spike">Current Spike Data</button>
+                <button class="nav-btn" data-tab="previous-spike">Previous Spike Data</button>
+                <button class="nav-btn" data-tab="submission-control">Submission Control</button>
+            </nav>
+        </header>
+
+        <!-- Items Management Tab -->
+        <div id="items-tab" class="tab-content active">
+            <div class="tab-header">
+                <h2>Item Management</h2>
+                <div class="action-buttons">
+                    <button class="add-btn" onclick="openItemModal()">Add New Item</button>
+                    <button class="upload-btn" onclick="openBulkUploadModal('items')">Bulk Upload</button>
+                    <button class="clear-btn" onclick="confirmClearPage('items')">Clear Page</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="items-table">
+                    <thead>
+                        <tr>
+                            <th>ItemID</th>
+                            <th>Description</th>
+                            <th>Grade</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-table-body">
+                        <!-- Items will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Customers Management Tab -->
+        <div id="customers-tab" class="tab-content">
+            <div class="tab-header">
+                <h2>Customer Management</h2>
+                <div class="action-buttons">
+                    <button class="add-btn" onclick="openCustomerModal()">Add New Customer</button>
+                    <button class="upload-btn" onclick="openBulkUploadModal('customers')">Bulk Upload</button>
+                    <button class="clear-btn" onclick="confirmClearPage('customers')">Clear Page</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="customers-table">
+                    <thead>
+                        <tr>
+                            <th>Customer Code</th>
+                            <th>Customer Name</th>
+                            <th>Region</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customers-table-body">
+                        <!-- Customers will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Booking Data Management Tab -->
+        <div id="booking-data-tab" class="tab-content">
+            <div class="tab-header">
+                <h2>Booking Data Management</h2>
+                <div class="action-buttons">
+                    <button class="add-btn" onclick="openBookingModal()">Add Booking Data</button>
+                    <button class="upload-btn" onclick="openBulkUploadModal('booking')">Bulk Upload</button>
+                    <button class="clear-btn" onclick="confirmClearPage('booking')">Clear Page</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="booking-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Region</th>
+                            <th>ItemID</th>
+                            <th>Description</th>
+                            <th>Average Booking</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="booking-table-body">
+                        <!-- Booking data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Shipping Data Management Tab -->
+        <div id="shipping-data-tab" class="tab-content">
+            <div class="tab-header">
+                <h2>Shipping Data Management</h2>
+                <div class="action-buttons">
+                    <button class="add-btn" onclick="openShippingModal()">Add Shipping Data</button>
+                    <button class="upload-btn" onclick="openBulkUploadModal('shipping')">Bulk Upload</button>
+                    <button class="clear-btn" onclick="confirmClearPage('shipping')">Clear Page</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="shipping-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Region</th>
+                            <th>ItemID</th>
+                            <th>Description</th>
+                            <th>Average Shipping</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="shipping-table-body">
+                        <!-- Shipping data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Current Spike Data Management Tab -->
+        <div id="current-spike-tab" class="tab-content">
+            <div class="tab-header">
+                <h2>Current Spike Data (Read-Only)</h2>
+                <div class="read-only-badge">🔒 Data entered by users via Entry Page</div>
+                <div class="action-buttons">
+                    <div class="filter-controls">
+                        <select id="current-spike-customer-filter">
+                            <option value="">All Customers</option>
+                        </select>
+                        <button class="refresh-btn" onclick="refreshCurrentSpikeData()">🔄 Refresh Data</button>
+                    </div>
+                    <div class="action-buttons-right">
+                        <button class="export-btn" onclick="exportCurrentSpikeDataToExcel()">📊 Export to Excel</button>
+                        <button class="send-to-previous-btn" onclick="sendToPreviousSpikeData()">📤 Send to Previous</button>
+                        <button class="clear-btn" onclick="confirmClearPage('current-spike')">Clear Page</button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="current-spike-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-current-spike" onchange="toggleAllCurrentSpike()"></th>
+                            <th>Customer</th>
+                            <th>Region</th>
+                            <th>ItemID</th>
+                            <th>Description</th>
+                            <th>Grade</th>
+                            <th>Month 1</th>
+                            <th>Month 2</th>
+                            <th>Month 3</th>
+                            <th>Total Spike</th>
+                            <th>Submit Date</th>
+                            <th>User</th>
+                        </tr>
+                    </thead>
+                    <tbody id="current-spike-table-body">
+                        <!-- Current spike data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Previous Spike Data Management Tab -->
+        <div id="previous-spike-tab" class="tab-content">
+            <div class="tab-header">
+                <h2>Previous Spike Data (Read-Only)</h2>
+                <div class="read-only-badge">📋 Historical data moved from Current Spike Data</div>
+                <div class="action-buttons">
+                    <div class="filter-controls">
+                        <select id="previous-spike-customer-filter">
+                            <option value="">All Customers</option>
+                        </select>
+                        <button class="refresh-btn" onclick="refreshPreviousSpikeData()">🔄 Refresh Data</button>
+                    </div>
+                    <div class="action-buttons-right">
+                        <button class="export-btn" onclick="exportPreviousSpikeDataToExcel()">📊 Export to Excel</button>
+                        <button class="clear-btn" onclick="confirmClearPage('previous-spike')">Clear Page</button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="previous-spike-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Region</th>
+                            <th>ItemID</th>
+                            <th>Description</th>
+                            <th>Grade</th>
+                            <th>Month 1</th>
+                            <th>Month 2</th>
+                            <th>Month 3</th>
+                            <th>Total Spike</th>
+                            <th>Submit Date</th>
+                            <th>User</th>
+                            <th>Moved Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previous-spike-table-body">
+                        <!-- Previous spike data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Submission Control Tab -->
+        <div id="submission-control-tab" class="tab-content">
+            <div class="tab-header">
+                <h2>Submission Window Control</h2>
+                <div class="control-badge">🔐 Control user access to data submission</div>
+            </div>
+            <div class="control-panel">
+                <div class="control-status">
+                    <h3>Current Status:</h3>
+                    <div id="submission-status" class="status-indicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Checking...</span>
+                    </div>
+                </div>
+                
+                <div class="control-timestamps">
+                    <div class="timestamp-item">
+                        <h4>Last Opened:</h4>
+                        <div id="open-timestamp" class="timestamp-value">Never</div>
+                    </div>
+                    <div class="timestamp-item">
+                        <h4>Last Closed:</h4>
+                        <div id="close-timestamp" class="timestamp-value">Never</div>
+                    </div>
+                </div>
+                
+                <div class="control-actions">
+                    <button id="open-submission-btn" class="control-btn open-btn" onclick="openSubmissionWindow()">
+                        🟢 Open Submission Window
+                    </button>
+                    <button id="close-submission-btn" class="control-btn close-btn" onclick="closeSubmissionWindow()">
+                        🔴 Close Submission Window
+                    </button>
+                </div>
+                
+                <div class="auto-close-section">
+                    <h3>Auto-Close Schedule</h3>
+                    <div class="auto-close-form">
+                        <div class="form-group">
+                            <label for="auto-close-date">Schedule Auto-Close Date:</label>
+                            <input type="date" id="auto-close-date" min="">
+                        </div>
+                        <div class="form-group">
+                            <label for="auto-close-time">Schedule Auto-Close Time:</label>
+                            <input type="time" id="auto-close-time">
+                        </div>
+                        <div class="auto-close-actions">
+                            <button id="schedule-auto-close-btn" class="schedule-btn" onclick="scheduleAutoClose()">
+                                ⏰ Schedule Auto-Close
+                            </button>
+                            <button id="cancel-auto-close-btn" class="cancel-btn" onclick="cancelAutoClose()">
+                                ❌ Cancel Schedule
+                            </button>
+                        </div>
+                    </div>
+                    <div id="scheduled-close-info" class="scheduled-info">
+                        <span class="scheduled-icon">📅</span>
+                        <span class="scheduled-text">No auto-close scheduled</span>
+                    </div>
+                </div>
+                
+                <div class="control-info">
+                    <h3>What This Controls:</h3>
+                    <ul>
+                        <li><strong>Open:</strong> Users can submit spike data through the entry page</li>
+                        <li><strong>Closed:</strong> Users cannot submit spike data - inputs will be disabled</li>
+                        <li><strong>Auto-Close:</strong> Schedule the window to automatically close at a specific date/time</li>
+                        <li>Use this to control when users can enter data (e.g., during specific time periods)</li>
+                        <li>Timestamps are automatically recorded when opening/closing the window</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Modal -->
+    <div id="item-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('item-modal')">&times;</span>
+            <h2 id="item-modal-title">Add New Item</h2>
+            <form id="item-form">
+                <input type="hidden" id="item-edit-index" value="-1">
+                <div class="form-group">
+                    <label for="item-id">ItemID:</label>
+                    <input type="text" id="item-id" required>
+                </div>
+                <div class="form-group">
+                    <label for="item-description">Description:</label>
+                    <input type="text" id="item-description" required>
+                </div>
+                <div class="form-group">
+                    <label for="item-grade">Grade:</label>
+                    <select id="item-grade" required>
+                        <option value="">Select Grade</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">Save Item</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Customer Modal -->
+    <div id="customer-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('customer-modal')">&times;</span>
+            <h2 id="customer-modal-title">Add New Customer</h2>
+            <form id="customer-form">
+                <input type="hidden" id="customer-edit-index" value="-1">
+                <div class="form-group">
+                    <label for="customer-code">Customer Code:</label>
+                    <input type="text" id="customer-code" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-name">Customer Name:</label>
+                    <input type="text" id="customer-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-region">Region:</label>
+                    <select id="customer-region" required>
+                        <option value="">Select Region</option>
+                        <option value="South West">South West</option>
+                        <option value="North East">North East</option>
+                        <option value="North West">North West</option>
+                        <option value="South East">South East</option>
+                        <option value="Central">Central</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">Save Customer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Booking Data Modal -->
+    <div id="booking-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('booking-modal')">&times;</span>
+            <h2 id="booking-modal-title">Add Booking Data</h2>
+            <form id="booking-form">
+                <input type="hidden" id="booking-edit-index" value="-1">
+                <div class="form-group">
+                    <label for="booking-customer">Customer:</label>
+                    <select id="booking-customer" required>
+                        <option value="">Select Customer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="booking-item">ItemID:</label>
+                    <select id="booking-item" required>
+                        <option value="">Select Item</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="booking-value">Average Booking:</label>
+                    <input type="number" id="booking-value" required min="0" step="1">
+                </div>
+                <button type="submit" class="submit-btn">Save Booking Data</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Shipping Data Modal -->
+    <div id="shipping-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('shipping-modal')">&times;</span>
+            <h2 id="shipping-modal-title">Add Shipping Data</h2>
+            <form id="shipping-form">
+                <input type="hidden" id="shipping-edit-index" value="-1">
+                <div class="form-group">
+                    <label for="shipping-customer">Customer:</label>
+                    <select id="shipping-customer" required>
+                        <option value="">Select Customer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="shipping-item">ItemID:</label>
+                    <select id="shipping-item" required>
+                        <option value="">Select Item</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="shipping-value">Average Shipping:</label>
+                    <input type="number" id="shipping-value" required min="0" step="1">
+                </div>
+                <button type="submit" class="submit-btn">Save Shipping Data</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Clear Page Confirmation Modal -->
+    <div id="clear-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('clear-modal')">&times;</span>
+            <h2>⚠️ Confirm Clear Page</h2>
+            <p>Are you sure you want to clear all data from this section? This action cannot be undone.</p>
+            <div class="form-group">
+                <label for="clear-password">Enter Admin Password to Confirm:</label>
+                <input type="password" id="clear-password" required placeholder="Enter password">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="cancel-btn" onclick="closeModal('clear-modal')">Cancel</button>
+                <button type="button" class="confirm-btn" onclick="executeClearPage()">Clear Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Upload Modal -->
+    <div id="bulk-upload-modal" class="modal">
+        <div class="modal-content bulk-modal-content">
+            <span class="close" onclick="closeModal('bulk-upload-modal')">&times;</span>
+            <h2 id="bulk-upload-title">Bulk Upload</h2>
+            <div id="bulk-upload-instructions">
+                <p><strong>CSV Format Instructions:</strong></p>
+                <div id="csv-format-example"></div>
+                <p>Save your data as a CSV file and upload it below.</p>
+            </div>
+            <div class="form-group">
+                <label for="bulk-upload-file">Select CSV File:</label>
+                <input type="file" id="bulk-upload-file" accept=".csv" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="bulk-upload-append">
+                    Append to existing data (unchecked = replace all)
+                </label>
+            </div>
+            <button type="button" class="submit-btn" onclick="processBulkUpload()">Upload Data</button>
+            <div id="bulk-upload-results" class="upload-results"></div>
+        </div>
+    </div>
+
+    <script src="../azure-config.js"></script>
+    <script src="../sharepoint-api.js"></script>
+    <script src="admin-script.js"></script>
+</body>
+</html>

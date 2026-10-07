@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="admin-styles.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            color: #0078d4;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #0078d4;
+            box-shadow: 0 0 0 2px rgba(0,120,212,0.2);
+        }
+        
+        .login-btn {
+            padding: 12px 20px;
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        
+        .login-btn:hover {
+            background-color: #005a9e;
+        }
+        
+        .error-message {
+            background-color: #fde7e9;
+            color: #d13438;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #d13438;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #0078d4;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Admin Panel Login</h1>
+            <p>Enter your password to access the admin panel</p>
+        </div>
+        
+        <div id="error-message" class="error-message"></div>
+        
+        <form class="login-form" id="login-form">
+            <div class="form-group">
+                <label for="admin-password">Admin Password:</label>
+                <input type="password" id="admin-password" required placeholder="Enter password">
+            </div>
+            
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+        
+        <div class="back-link">
+            <a href="../index.html">← Back to Entry Page</a>
+        </div>
+    </div>
+    
+    <script>
+        // Set your admin password here
+        const ADMIN_PASSWORD = 'Admin@123'; // Change this to your desired password
+        
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('admin-password').value;
+            const errorMessage = document.getElementById('error-message');
+            
+            if (password === ADMIN_PASSWORD) {
+                // Store authentication in session storage
+                sessionStorage.setItem('adminAuthenticated', 'true');
+                sessionStorage.setItem('adminAuthTime', Date.now().toString());
+                
+                // Redirect to admin panel
+                window.location.href = 'admin.html';
+            } else {
+                errorMessage.textContent = 'Incorrect password. Please try again.';
+                errorMessage.style.display = 'block';
+                document.getElementById('admin-password').value = '';
+            }
+        });
+        
+        // Check if already authenticated
+        if (sessionStorage.getItem('adminAuthenticated') === 'true') {
+            const authTime = parseInt(sessionStorage.getItem('adminAuthTime') || '0');
+            const currentTime = Date.now();
+            
+            // Session expires after 30 minutes
+            if (currentTime - authTime < 30 * 60 * 1000) {
+                window.location.href = 'admin.html';
+            } else {
+                sessionStorage.removeItem('adminAuthenticated');
+                sessionStorage.removeItem('adminAuthTime');
+            }
+        }
+    </script>
+</body>
+</html>
