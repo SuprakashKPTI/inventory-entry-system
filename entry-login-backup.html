@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entry Page Login</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            color: #0078d4;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #0078d4;
+            box-shadow: 0 0 0 2px rgba(0,120,212,0.2);
+        }
+        
+        .login-btn {
+            padding: 12px 20px;
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        
+        .login-btn:hover {
+            background-color: #005a9e;
+        }
+        
+        .error-message {
+            background-color: #fde7e9;
+            color: #d13438;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #d13438;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .admin-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .admin-link a {
+            color: #0078d4;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .admin-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Inventory Entry Login</h1>
+            <p>Enter your name and password to access the entry page</p>
+        </div>
+        
+        <div id="error-message" class="error-message"></div>
+        
+        <form class="login-form" id="login-form">
+            <div class="form-group">
+                <label for="user-name">Your Name:</label>
+                <input type="text" id="user-name" required placeholder="Enter your name">
+            </div>
+            
+            <div class="form-group">
+                <label for="user-password">Password:</label>
+                <input type="password" id="user-password" required placeholder="Enter password">
+            </div>
+            
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+        
+        <div class="admin-link">
+            <a href="admin/login.html">Admin Panel Login →</a>
+        </div>
+    </div>
+    
+    <script>
+        // User password for entry page
+        const USER_PASSWORD = 'User@123';
+        
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userName = document.getElementById('user-name').value.trim();
+            const password = document.getElementById('user-password').value;
+            const errorMessage = document.getElementById('error-message');
+            
+            // Validate name is not empty
+            if (!userName) {
+                errorMessage.textContent = 'Please enter your name.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            if (password === USER_PASSWORD) {
+                // Store authentication and user name in session storage
+                sessionStorage.setItem('userAuthenticated', 'true');
+                sessionStorage.setItem('userAuthTime', Date.now().toString());
+                sessionStorage.setItem('userName', userName);
+                
+                // Redirect to entry page
+                window.location.href = 'index.html';
+            } else {
+                errorMessage.textContent = 'Incorrect password. Please try again.';
+                errorMessage.style.display = 'block';
+                document.getElementById('user-password').value = '';
+            }
+        });
+        
+        // Check if already authenticated
+        if (sessionStorage.getItem('userAuthenticated') === 'true') {
+            const authTime = parseInt(sessionStorage.getItem('userAuthTime') || '0');
+            const currentTime = Date.now();
+            
+            // Session expires after 8 hours
+            if (currentTime - authTime < 8 * 60 * 60 * 1000) {
+                window.location.href = 'index.html';
+            } else {
+                sessionStorage.removeItem('userAuthenticated');
+                sessionStorage.removeItem('userAuthTime');
+                sessionStorage.removeItem('userName');
+            }
+        }
+    </script>
+</body>
+</html>

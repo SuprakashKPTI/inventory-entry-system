@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Admin Panel</title>
     <link rel="stylesheet" href="admin-styles.css">
+    
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Supabase Configuration -->
+    <script src="../supabase-config.js"></script>
 </head>
 <body>
     <script>
@@ -475,8 +481,7 @@
         </div>
     </div>
 
-    <script src="../azure-config.js"></script>
-    <script src="../sharepoint-api.js"></script>
+    <!-- Admin Script (Supabase version) -->
     <script src="admin-script.js"></script>
 </body>
 </html>

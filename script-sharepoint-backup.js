@@ -1,10 +1,25 @@
-// Data storage configuration for Supabase
+// Data storage configuration
 const DATA_CONFIG = {
-    USE_SUPABASE: true,
-    USE_SHAREPOINT: false
+    // For GitHub Pages, you can use:
+    // 1. Google Sheets API (recommended for this use case)
+    // 2. GitHub API to store data in a repository
+    // 3. LocalStorage for demo purposes
+    
+    // Replace with your actual configuration
+    GOOGLE_SHEETS_API_KEY: 'YOUR_API_KEY',
+    GOOGLE_SHEETS_SHEET_ID: 'YOUR_SHEET_ID',
+    
+    // SharePoint integration flag
+    USE_SHAREPOINT: true
+};
+    
+    // Or use GitHub API
+    GITHUB_TOKEN: 'YOUR_GITHUB_TOKEN',
+    GITHUB_REPO: 'username/repo',
+    GITHUB_DATA_FILE: 'data/inventory-data.json'
 };
 
-// Load data from Supabase
+// Load data from admin storage
 let ITEM_DATA = [];
 let CUSTOMER_DATA = [];
 let BOOKING_DATA = {};
@@ -14,63 +29,90 @@ let PREVIOUS_SPIKE_DATA = [];
 let REGIONS = ['South West', 'North East', 'North West', 'South East', 'Central'];
 let SUBMISSION_WINDOW_OPEN = false;
 
-// Function to load data from Supabase
+// Function to load data from admin localStorage
 async function loadAdminData() {
-    if (DATA_CONFIG.USE_SUPABASE) {
+    if (DATA_CONFIG.USE_SHAREPOINT) {
         try {
-            console.log('Loading data from Supabase...');
-            await loadAdminDataFromSupabase();
+            console.log('Loading data from SharePoint...');
+            await loadAdminDataFromSharePoint();
         } catch (error) {
-            console.error('Supabase loading failed, falling back to localStorage:', error);
-            alert('Could not connect to Supabase. Using local storage instead.');
+            console.error('SharePoint loading failed, falling back to localStorage:', error);
+            alert('Could not connect to SharePoint. Using local storage instead.');
             loadAdminDataFromLocalStorage();
         }
     } else {
-        console.log('Using localStorage (Supabase disabled)');
+        console.log('Using localStorage (SharePoint disabled)');
         loadAdminDataFromLocalStorage();
     }
 }
 
-async function loadAdminDataFromSupabase() {
+async function loadAdminDataFromSharePoint() {
     try {
-        // Load all data from Supabase
+        // Load all data from SharePoint lists
         const items = await getItems();
         const customers = await getCustomers();
-        const bookingData = await getBookingData();
-        const shippingData = await getShippingData();
-        const spikeItems = await getSpikeData();
-        const submissionControl = await getSubmissionControl();
+        const bookingItems = await getListItems(SHAREPOINT_LISTS.bookingData);
+        const shippingItems = await getListItems(SHAREPOINT_LISTS.shippingData);
+        const spikeItems = await getListItems(SHAREPOINT_LISTS.spikeData);
         
-        // Convert data to app format
+        // Convert booking data to nested structure
+        const bookingData = {};
+        bookingItems.forEach(item => {
+            if (!bookingData[item.CustomerCode]) {
+                bookingData[item.CustomerCode] = {};
+            }
+            bookingData[item.CustomerCode][item.ItemID] = item.AverageBooking;
+        });
+        
+        // Convert shipping data to nested structure
+        const shippingData = {};
+        shippingItems.forEach(item => {
+            if (!shippingData[item.CustomerCode]) {
+                shippingData[item.CustomerCode] = {};
+            }
+            shippingData[item.CustomerCode][item.ItemID] = item.AverageShipping;
+        });
+        
+        // Convert SharePoint items to app format
         ITEM_DATA = items.map(item => ({
-            itemID: item.itemID,
-            description: item.description,
-            grade: item.grade
+            itemID: item.ItemID,
+            description: item.Description,
+            grade: item.Grade
         }));
         
         CUSTOMER_DATA = customers.map(customer => ({
-            code: customer.code,
-            name: customer.name,
-            region: customer.region
+            code: customer.CustomerCode,
+            name: customer.CustomerName,
+            region: customer.Region
         }));
         
         BOOKING_DATA = bookingData;
         SHIPPING_DATA = shippingData;
         
-        // Separate current and previous spike data
-        SPIKE_DATA = spikeItems.filter(spike => !spike.movedDate);
-        PREVIOUS_SPIKE_DATA = spikeItems.filter(spike => spike.movedDate);
+        const formattedSpikeData = spikeItems.map(spike => ({
+            customer: spike.CustomerCode,
+            itemID: spike.ItemID,
+            month1: spike.Month1,
+            month2: spike.Month2,
+            month3: spike.Month3,
+            submitDate: spike.SubmitDate,
+            userName: spike.UserName
+        }));
         
-        // Set submission window status
-        SUBMISSION_WINDOW_OPEN = submissionControl ? submissionControl.is_open : false;
+        SPIKE_DATA = formattedSpikeData.filter(spike => !spike.movedDate);
+        PREVIOUS_SPIKE_DATA = formattedSpikeData.filter(spike => spike.movedDate);
         
-        console.log('Data loaded from Supabase successfully');
+        // Load submission window control data from localStorage
+        const localControlData = JSON.parse(localStorage.getItem('inventoryAdminData') || '{}');
+        SUBMISSION_WINDOW_OPEN = localControlData.submissionWindowOpen || false;
+        
+        console.log('Data loaded from SharePoint successfully');
         console.log('Items:', ITEM_DATA.length);
         console.log('Customers:', CUSTOMER_DATA.length);
         console.log('Spike data:', SPIKE_DATA.length);
         
     } catch (error) {
-        console.error('Error loading from Supabase:', error);
+        console.error('Error loading from SharePoint:', error);
         throw error;
     }
 }
@@ -136,8 +178,22 @@ function loadAdminDataFromLocalStorage() {
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
-    // Check authentication with Supabase
-    checkAuthentication();
+    // Check authentication
+    const isAuthenticated = sessionStorage.getItem('userAuthenticated') === 'true';
+    const authTime = parseInt(sessionStorage.getItem('userAuthTime') || '0');
+    const currentTime = Date.now();
+    
+    // Session expires after 8 hours
+    if (!isAuthenticated || (currentTime - authTime >= 8 * 60 * 60 * 1000)) {
+        sessionStorage.removeItem('userAuthenticated');
+        sessionStorage.removeItem('userAuthTime');
+        sessionStorage.removeItem('userName');
+        window.location.href = 'entry-login.html';
+        return;
+    }
+    
+    // Get logged-in user name
+    const userName = sessionStorage.getItem('userName') || '';
     
     loadAdminData();
     initializeCustomerDropdown();
@@ -145,27 +201,23 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeTable();
     setupEventListeners();
     
-    // Get logged-in user name from Supabase session
-    getCurrentUser().then(user => {
-        if (user) {
-            const userName = user.user_metadata?.full_name || user.email || user.user_metadata?.name || 'User';
-            const submittedByInput = document.getElementById('submittedBy');
-            if (submittedByInput) {
-                submittedByInput.value = userName;
-                submittedByInput.readOnly = true;
-                submittedByInput.style.backgroundColor = '#f5f5f5';
-            }
-        }
-    });
+    // Auto-fill Submitted By field with logged-in user name
+    const submittedByInput = document.getElementById('submittedBy');
+    if (submittedByInput && userName) {
+        submittedByInput.value = userName;
+        submittedByInput.readOnly = true; // Make it read-only
+        submittedByInput.style.backgroundColor = '#f5f5f5';
+    }
     
     // Setup logout button
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
             if (confirm('Are you sure you want to logout?')) {
-                signOut().then(() => {
-                    window.location.href = 'entry-login.html';
-                });
+                sessionStorage.removeItem('userAuthenticated');
+                sessionStorage.removeItem('userAuthTime');
+                sessionStorage.removeItem('userName');
+                window.location.href = 'entry-login.html';
             }
         });
     }
@@ -178,27 +230,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('BOOKING_DATA:', BOOKING_DATA);
     console.log('SHIPPING_DATA:', SHIPPING_DATA);
     console.log('PREVIOUS_SPIKE_DATA:', PREVIOUS_SPIKE_DATA);
+    console.log('Logged in user:', userName);
 });
-
-// Check authentication
-async function checkAuthentication() {
-    const session = await getSession();
-    const currentTime = Date.now();
-    
-    // Check if session exists and is valid
-    if (!session) {
-        window.location.href = 'entry-login.html';
-        return;
-    }
-    
-    // Check session expiration (Supabase handles this, but we can add additional checks)
-    const authTime = new Date(session.expires_at).getTime();
-    if (currentTime >= authTime) {
-        await signOut();
-        window.location.href = 'entry-login.html';
-        return;
-    }
-}
 
 // Initialize customer dropdown
 function initializeCustomerDropdown() {
@@ -321,7 +354,7 @@ function setupEventListeners() {
     // Submit button
     submitBtn.addEventListener('click', submitData);
     
-    // Refresh button - reload data from Supabase
+    // Refresh button - reload data from admin storage
     refreshBtn.addEventListener('click', function() {
         console.log('Manual refresh triggered');
         loadAdminData();
@@ -333,7 +366,7 @@ function setupEventListeners() {
         customerSelect.value = '';
         regionSelect.value = '';
         regionSelect.disabled = true;
-        alert('Data refreshed from Supabase. Please select a customer again.');
+        alert('Data refreshed from admin storage. Please select a customer again.');
     });
     
     // Download button - download current spike data for logged-in user
@@ -569,15 +602,13 @@ function hideSubmissionStatusMessage() {
 }
 
 // Download user's spike data to Excel
-async function downloadUserSpikeData() {
-    const user = await getCurrentUser();
+function downloadUserSpikeData() {
+    const userName = sessionStorage.getItem('userName');
     
-    if (!user) {
+    if (!userName) {
         alert('User not logged in. Please login to download your data.');
         return;
     }
-    
-    const userName = user.user_metadata?.full_name || user.email || user.user_metadata?.name || 'User';
     
     // Filter spike data for this user
     const userSpikeData = SPIKE_DATA.filter(spike => spike.userName === userName);
@@ -587,7 +618,7 @@ async function downloadUserSpikeData() {
         return;
     }
     
-    // Create CSV content
+    // Create CSV content (same format as Current Spike Data export)
     let csvContent = 'Customer,Customer Name,Region,Item ID,Description,Grade,Month 1,Month 2,Month 3,Total Spike,Submit Date,User Name\n';
     
     userSpikeData.forEach(spike => {
@@ -682,7 +713,7 @@ async function submitData() {
     }
     
     try {
-        // Save data to Supabase
+        // Save data (implementation depends on chosen storage method)
         await saveData(masterData);
         alert('Data submitted successfully!');
         
@@ -700,17 +731,17 @@ async function submitData() {
     }
 }
 
-// Save data to storage
+// Save data to storage (implementation depends on your choice)
 async function saveData(data) {
     console.log('=== SAVE DATA STARTED ===');
     console.log('Data to save:', data);
     
-    if (DATA_CONFIG.USE_SUPABASE) {
+    if (DATA_CONFIG.USE_SHAREPOINT) {
         try {
-            await saveDataToSupabase(data);
+            await saveDataToSharePoint(data);
         } catch (error) {
-            console.error('Supabase save failed, using localStorage fallback:', error);
-            alert('Could not save to Supabase. Data saved locally instead.');
+            console.error('SharePoint save failed, using localStorage fallback:', error);
+            alert('Could not save to SharePoint. Data saved locally instead.');
             await saveDataToLocalStorage(data);
         }
     } else {
@@ -718,11 +749,10 @@ async function saveData(data) {
     }
 }
 
-async function saveDataToSupabase(data) {
-    const user = await getCurrentUser();
-    const userEmail = user ? user.email : null;
+async function saveDataToSharePoint(data) {
+    const submitDate = new Date().toISOString().split('T')[0];
     
-    // Add each entry to Supabase
+    // Add each entry to SharePoint
     for (const entry of data) {
         const spike = {
             customer: entry.customer,
@@ -730,17 +760,16 @@ async function saveDataToSupabase(data) {
             month1: entry.month1Spike,
             month2: entry.month2Spike,
             month3: entry.month3Spike,
-            submitDate: entry.submitDate,
+            submitDate: submitDate,
             userName: entry.userName,
-            userEmail: userEmail,
             region: entry.region
         };
         
         await addSpikeData(spike);
-        console.log('Added entry to Supabase:', spike);
+        console.log('Added entry to SharePoint:', spike);
     }
     
-    console.log('All entries saved to Supabase successfully');
+    console.log('All entries saved to SharePoint successfully');
 }
 
 async function saveDataToLocalStorage(data) {
@@ -791,4 +820,80 @@ async function saveDataToLocalStorage(data) {
     localStorage.setItem('inventoryData', JSON.stringify(data));
     
     console.log('=== SAVE DATA COMPLETED ===');
+}
+
+// Google Sheets integration (to be implemented with actual API credentials)
+async function saveToGoogleSheets(data) {
+    // This would use the Google Sheets API
+    // You'll need to set up API credentials and a Google Sheet
+    // Reference: https://developers.google.com/sheets/api
+    
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${DATA_CONFIG.GOOGLE_SHEETS_SHEET_ID}/values/Sheet1:append?valueInputOption=USER_ENTERED`;
+    
+    const values = data.map(row => [
+        row.itemID,
+        row.description,
+        row.grade,
+        row.month1Spike,
+        row.month2Spike,
+        row.month3Spike,
+        row.userName,
+        row.customer,
+        row.region,
+        row.submitDate
+    ]);
+    
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${DATA_CONFIG.GOOGLE_SHEETS_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ values })
+    });
+    
+    return response.json();
+}
+
+// GitHub API integration (alternative storage method)
+async function saveToGitHub(data) {
+    // This would use the GitHub API to store data in a repository
+    // You'll need to set up a personal access token
+    
+    const url = `https://api.github.com/repos/${DATA_CONFIG.GITHUB_REPO}/contents/${DATA_CONFIG.GITHUB_DATA_FILE}`;
+    
+    // Get existing data first
+    const existingResponse = await fetch(url, {
+        headers: {
+            'Authorization': `token ${DATA_CONFIG.GITHUB_TOKEN}`
+        }
+    });
+    
+    let existingData = [];
+    let sha = null;
+    
+    if (existingResponse.ok) {
+        const existing = await existingResponse.json();
+        sha = existing.sha;
+        existingData = JSON.parse(atob(existing.content));
+    }
+    
+    // Append new data
+    const updatedData = [...existingData, ...data];
+    
+    // Commit updated data
+    const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `token ${DATA_CONFIG.GITHUB_TOKEN}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            message: 'Update inventory data',
+            content: btoa(JSON.stringify(updatedData, null, 2)),
+            sha: sha
+        })
+    });
+    
+    return response.json();
 }

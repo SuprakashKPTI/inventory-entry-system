@@ -1,6 +1,9 @@
 # Azure Configuration (contains sensitive credentials)
 azure-config.js
 
+# Supabase Configuration (contains sensitive credentials)
+supabase-config.js
+
 # OS files
 .DS_Store
 Thumbs.db
