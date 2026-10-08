@@ -11,6 +11,10 @@ This guide provides step-by-step instructions to deploy the inventory entry syst
 - SharePoint site: `https://kcptco.sharepoint.com/sites/YGSpikeplanning`
 - Admin access to Azure Portal and SharePoint
 
+## Architecture Note
+
+This application uses **Microsoft Graph API** to access SharePoint data. Microsoft Graph API has better CORS support than SharePoint REST API, allowing external access from GitHub Pages without complex CORS configuration.
+
 ## Phase 1: Azure AD Configuration (30-45 minutes)
 
 ### Step 1: Register Azure AD Application
@@ -42,17 +46,19 @@ After registration, copy and save:
 5. **IMPORTANT**: Copy the **Value** (not Secret ID) - you won't see it again!
 6. Save this client secret securely
 
-### Step 4: Configure API Permissions
+### Step 4: Configure Microsoft Graph API Permissions
 
 1. Click **"API permissions"**
 2. Click **"Add a permission"**
-3. Select **"SharePoint"** → "Application permissions"
+3. Select **"Microsoft Graph"** → "Application permissions"
 4. Search for and check:
    - `Sites.Read.All`
    - `Sites.ReadWrite.All`
 5. Click **"Add permissions"**
 6. Click **"Grant admin consent for [your organization]"**
 7. Confirm the consent dialog
+
+**Note**: Microsoft Graph API is used instead of SharePoint REST API for better CORS support from GitHub Pages.
 
 ## Phase 2: SharePoint List Creation (20-30 minutes)
 
@@ -91,20 +97,7 @@ Follow `SHAREPOINT_LISTS.md` to create these lists in your SharePoint site:
    - UserName (Single line of text)
    - Region (Single line of text)
 
-## Phase 3: Configure CORS in SharePoint (5 minutes)
-
-1. Go to your SharePoint site: `https://kcptco.sharepoint.com/sites/YGSpikeplanning`
-2. Click **Settings** (gear icon) → **Site Settings**
-3. Click **"Manage API access"**
-4. Under **"Cross-origin requests"**, click **"Add"**
-5. Add your GitHub Pages URL: `https://YOUR_USERNAME.github.io/inventory-system`
-6. Add allowed headers:
-   - `Authorization`
-   - `Content-Type`
-   - `Accept`
-7. Click **"Save"**
-
-## Phase 4: Configure Application Credentials (5 minutes)
+## Phase 3: Configure Application Credentials (5 minutes)
 
 1. Open `azure-config.js` in your project
 2. Replace placeholder values with your actual credentials:
@@ -121,7 +114,7 @@ const AZURE_CONFIG = {
 3. **IMPORTANT**: Never commit this file with real credentials to public GitHub!
 4. Add `azure-config.js` to `.gitignore` to prevent accidental commits
 
-## Phase 5: Deploy to GitHub Pages (15-30 minutes)
+## Phase 4: Deploy to GitHub Pages (15-30 minutes)
 
 ### Step 1: Initialize Git Repository
 
@@ -164,7 +157,7 @@ git push -u origin main
 5. Wait 1-2 minutes for deployment
 6. Your site will be available at: `https://YOUR_USERNAME.github.io/inventory-system/`
 
-## Phase 6: Test the Integration (15-20 minutes)
+## Phase 5: Test the Integration (15-20 minutes)
 
 ### Test 1: Access the Application
 
@@ -211,7 +204,7 @@ git push -u origin main
 4. Restore correct credentials
 5. Verify SharePoint connection works again
 
-## Phase 7: Embed in SharePoint (5 minutes)
+## Phase 6: Embed in SharePoint (5 minutes)
 
 1. Go to your SharePoint page where you want to embed
 2. Click **Edit** → **Add web part** → **"Embed"**
@@ -256,7 +249,7 @@ git push -u origin main
 **Solution**: Verify API permissions are granted and admin consent is given
 
 ### Error: "CORS policy"
-**Solution**: Ensure CORS is configured in SharePoint with correct GitHub Pages URL
+**Solution**: Microsoft Graph API should handle CORS automatically. If you still see CORS errors, verify the API permissions include the correct scope and that you're using HTTPS.
 
 ### Error: "404 Not Found"
 **Solution**: Verify SharePoint list names match exactly (case-sensitive)

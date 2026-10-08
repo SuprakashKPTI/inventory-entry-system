@@ -12,8 +12,10 @@ Your inventory entry system is now fully integrated with SharePoint for centrali
 1. Register Azure AD application
 2. Get Application (client) ID and Directory (tenant) ID
 3. Create client secret
-4. Configure SharePoint API permissions
+4. Configure Microsoft Graph API permissions (not SharePoint REST API)
 5. Grant admin consent
+
+**Note**: We use Microsoft Graph API for better CORS support from GitHub Pages.
 
 ### 2. Create SharePoint Lists (30 minutes)
 **File**: `SHAREPOINT_LISTS.md`
@@ -25,12 +27,7 @@ Create these 5 lists in your SharePoint site:
 - ShippingData
 - SpikeData
 
-### 3. Configure CORS (5 minutes)
-**File**: `DEPLOYMENT_SHAREPOINT.md`
-
-Add your GitHub Pages URL to SharePoint CORS configuration.
-
-### 4. Configure Credentials (5 minutes)
+### 3. Configure Credentials (5 minutes)
 **File**: `azure-config.js`
 
 Replace placeholder values with your actual Azure AD credentials:
@@ -87,10 +84,16 @@ GitHub Pages (Hosting)
     ↓
 Entry Page / Admin Panel
     ↓
-SharePoint REST API
+Microsoft Graph API (Azure AD Auth)
     ↓
 SharePoint Lists (Storage)
 ```
+
+**Why Microsoft Graph API?**
+- Better CORS support for external access
+- Modern Microsoft API
+- No SharePoint CORS configuration needed
+- Recommended by Microsoft
 
 ## Security Notes
 

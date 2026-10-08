@@ -1,8 +1,8 @@
-# Azure AD App Registration Guide
+# Azure AD App Registration Guide (Microsoft Graph API)
 
 ## Overview
 
-This guide will walk you through registering an Azure AD application to authenticate with SharePoint REST API for external access.
+This guide will walk you through registering an Azure AD application to authenticate with Microsoft Graph API for accessing SharePoint data from GitHub Pages.
 
 ## Prerequisites
 
@@ -46,20 +46,19 @@ After registration, you'll see:
 5. **IMPORTANT**: Copy the **Value** (not the Secret ID) - you won't see it again!
 6. Save this client secret securely
 
-### Step 5: Configure API Permissions
+### Step 5: Configure Microsoft Graph API Permissions
 
 1. Click **"API permissions"** in the left menu
 2. Click **"Add a permission"**
 3. Select **"Microsoft Graph"** → "Application permissions"
-4. Skip Graph for now (we'll use SharePoint permissions)
-5. Click **"Add a permission"** again
-6. Select **"SharePoint"** → "Application permissions"
-7. Search for and check these permissions:
-   - `Sites.Read.All` (Read access to all sites)
-   - `Sites.ReadWrite.All` (Read and write access to all sites)
-8. Click **"Add permissions"**
-9. Click **"Grant admin consent for [your organization]"** button
-10. Confirm the consent dialog
+4. Search for and check these permissions:
+   - `Sites.Read.All` (Read access to all SharePoint sites)
+   - `Sites.ReadWrite.All` (Read and write access to all SharePoint sites)
+5. Click **"Add permissions"**
+6. Click **"Grant admin consent for [your organization]"** button
+7. Confirm the consent dialog
+
+**Note**: Microsoft Graph API has better CORS support than SharePoint REST API, allowing external access from GitHub Pages without complex CORS configuration.
 
 ### Step 6: Copy Your Credentials
 
@@ -68,100 +67,81 @@ You should now have:
 - **Tenant ID**: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
 - **Client Secret**: `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-### Step 7: Configure CORS in SharePoint
+### Step 7: Configure the Application
 
-**For GitHub Pages to call SharePoint API:**
-
-1. Go to your SharePoint site: `https://kcptco.sharepoint.com/sites/YGSpikeplanning`
-2. Click **Settings** (gear icon) → **Site Settings**
-3. Click **"Manage API access"**
-4. Under **"Cross-origin requests"**, click **"Add"**
-5. Add your GitHub Pages URL: `https://YOUR_USERNAME.github.io/inventory-system`
-6. Add these allowed headers:
-   - `Authorization`
-   - `Content-Type`
-   - `Accept`
-7. Click **"Save"**
-
-### Step 8: Configure the Application
-
-Update the `sharepoint-api.js` file with your credentials:
+Update the `azure-config.js` file with your credentials:
 
 ```javascript
-const SHAREPOINT_CONFIG = {
-    siteUrl: 'https://kcptco.sharepoint.com/sites/YGSpikeplanning',
-    lists: {
-        items: 'InventoryItems',
-        customers: 'Customers',
-        bookingData: 'BookingData',
-        shippingData: 'ShippingData',
-        spikeData: 'SpikeData'
-    },
-    azure: {
-        clientId: 'YOUR_CLIENT_ID_HERE',
-        tenantId: 'YOUR_TENANT_ID_HERE',
-        redirectUri: window.location.origin + '/index.html'
-    }
+const AZURE_CONFIG = {
+    clientId: 'YOUR_CLIENT_ID_HERE',
+    tenantId: 'YOUR_TENANT_ID_HERE',
+    clientSecret: 'YOUR_CLIENT_SECRET_HERE',
+    siteUrl: 'https://kcptco.sharepoint.com/sites/YGSpikeplanning'
 };
 ```
 
 Replace:
 - `YOUR_CLIENT_ID_HERE` with your Application (client) ID
 - `YOUR_TENANT_ID_HERE` with your Directory (tenant) ID
+- `YOUR_CLIENT_SECRET_HERE` with your client secret
 
-## Step 9: Create SharePoint Lists
+### Step 8: Create SharePoint Lists
 
-In your SharePoint site, create these lists with the specified columns:
+In your SharePoint site, create these lists with the specified columns (follow `SHAREPOINT_LISTS.md` for detailed instructions):
 
-### 1. InventoryItems List
-- List Name: `InventoryItems`
-- Columns:
-  - ItemID (Single line of text, required)
-  - Description (Multiple lines of text)
-  - Grade (Single line of text)
+### Required Lists
 
-### 2. Customers List
-- List Name: `Customers`
-- Columns:
-  - CustomerCode (Single line of text, required)
-  - CustomerName (Single line of text)
-  - Region (Choice: South West, North East, North West, South East, Central)
+1. **InventoryItems**
+   - ItemID (Single line of text, required)
+   - Description (Multiple lines of text)
+   - Grade (Single line of text)
 
-### 3. BookingData List
-- List Name: `BookingData`
-- Columns:
-  - CustomerCode (Single line of text, required)
-  - ItemID (Single line of text, required)
-  - AverageBooking (Number, 0 decimal places)
+2. **Customers**
+   - CustomerCode (Single line of text, required)
+   - CustomerName (Single line of text)
+   - Region (Choice: South West, North East, North West, South East, Central)
 
-### 4. ShippingData List
-- List Name: `ShippingData`
-- Columns:
-  - CustomerCode (Single line of text, required)
-  - ItemID (Single line of text, required)
-  - AverageShipping (Number, 0 decimal places)
+3. **BookingData**
+   - CustomerCode (Single line of text, required)
+   - ItemID (Single line of text, required)
+   - AverageBooking (Number, 0 decimal places)
 
-### 5. SpikeData List
-- List Name: `SpikeData`
-- Columns:
-  - CustomerCode (Single line of text, required)
-  - ItemID (Single line of text, required)
-  - Month1 (Number, 0 decimal places)
-  - Month2 (Number, 0 decimal places)
-  - Month3 (Number, 0 decimal places)
-  - TotalSpike (Calculated column: Month1 + Month2 + Month3)
-  - SubmitDate (Date and Time)
-  - UserName (Single line of text)
-  - Region (Single line of text)
+4. **ShippingData**
+   - CustomerCode (Single line of text, required)
+   - ItemID (Single line of text, required)
+   - AverageShipping (Number, 0 decimal places)
 
-## Step 10: Test the Connection
+5. **SpikeData**
+   - CustomerCode (Single line of text, required)
+   - ItemID (Single line of text, required)
+   - Month1 (Number, 0 decimal places)
+   - Month2 (Number, 0 decimal places)
+   - Month3 (Number, 0 decimal places)
+   - TotalSpike (Calculated column: Month1 + Month2 + Month3)
+   - SubmitDate (Date and Time)
+   - UserName (Single line of text)
+   - Region (Single line of text)
+
+### Step 9: Test the Connection
 
 After configuration, the application will:
 1. Authenticate with Azure AD using the credentials
-2. Get an access token
-3. Call SharePoint REST API
+2. Get an access token for Microsoft Graph API
+3. Call Microsoft Graph API to access SharePoint lists
 4. Store all data in SharePoint lists
 5. Allow users to access from anywhere via GitHub Pages
+
+## Why Microsoft Graph API?
+
+**Advantages over SharePoint REST API:**
+
+1. **Better CORS Support**: Microsoft Graph API is designed for cross-origin requests, working seamlessly with GitHub Pages
+2. **Modern API**: Microsoft's recommended way to access SharePoint data
+3. **Unified Endpoint**: Single API endpoint for all Microsoft 365 services
+4. **Better Documentation**: Comprehensive documentation and SDKs
+5. **Future-Proof**: Actively maintained and updated by Microsoft
+
+**No CORS Configuration Needed**: Unlike SharePoint REST API, Microsoft Graph API doesn't require CORS configuration in SharePoint.
 
 ## Security Notes
 
@@ -184,19 +164,22 @@ After configuration, the application will:
 **Solution**: Check that the client secret is correct and hasn't expired.
 
 ### Error: "403 Forbidden"
-**Solution**: Verify API permissions are granted and admin consent is given.
+**Solution**: Verify Microsoft Graph API permissions are granted and admin consent is given.
 
 ### Error: "CORS policy"
-**Solution**: Ensure CORS is configured in SharePoint and your GitHub Pages URL is added.
+**Solution**: Microsoft Graph API should handle CORS automatically. If you still see CORS errors, verify the API permissions include the correct scope.
 
 ### Error: "404 Not Found"
-**Solution**: Verify the SharePoint list names match exactly (case-sensitive).
+**Solution**: Verify the SharePoint list names match exactly (case-sensitive) and the site URL is correct.
+
+### Error: "Site not found"
+**Solution**: Ensure the SharePoint site URL in `azure-config.js` is correct and accessible.
 
 ## Next Steps
 
 After completing these steps:
-1. Update `sharepoint-api.js` with your credentials
-2. Create the SharePoint lists
+1. Update `azure-config.js` with your credentials
+2. Create the SharePoint lists (follow `SHAREPOINT_LISTS.md`)
 3. Test the API connection
 4. Deploy to GitHub Pages
 5. Test data submission to SharePoint
@@ -207,5 +190,6 @@ For Azure AD issues:
 - Azure Portal Documentation: https://docs.microsoft.com/en-us/azure/
 - Azure AD Documentation: https://docs.microsoft.com/en-us/azure/active-directory/
 
-For SharePoint API issues:
-- SharePoint REST API Documentation: https://docs.microsoft.com/en-us/sharepoint/dev/sp-add-ins/rest-api/
+For Microsoft Graph API issues:
+- Microsoft Graph Documentation: https://docs.microsoft.com/en-us/graph/
+- Microsoft Graph Explorer: https://developer.microsoft.com/en-us/graph/graph-explorer
