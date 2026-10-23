@@ -4,9 +4,6 @@ azure-config.js
 # Supabase Configuration (contains sensitive credentials)
 supabase-config.js
 
-# Supabase Configuration (contains sensitive credentials)
-supabase-config.js
-
 # Supabase backup folder
 supabase-backup/
 
