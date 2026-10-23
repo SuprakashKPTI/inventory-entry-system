@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entry Page Login</title>
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Supabase Configuration -->
+    <script src="supabase-config.js"></script>
+    
     <style>
         .login-container {
             max-width: 400px;
@@ -37,34 +44,13 @@
             gap: 20px;
         }
         
-        .form-group {
+        .microsoft-btn {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .form-group label {
-            font-weight: 600;
-            color: #555;
-            font-size: 14px;
-        }
-        
-        .form-group input {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #0078d4;
-            box-shadow: 0 0 0 2px rgba(0,120,212,0.2);
-        }
-        
-        .login-btn {
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             padding: 12px 20px;
-            background-color: #0078d4;
+            background-color: #00a4ef;
             color: white;
             border: none;
             border-radius: 4px;
@@ -74,8 +60,13 @@
             transition: background-color 0.3s ease;
         }
         
-        .login-btn:hover {
-            background-color: #005a9e;
+        .microsoft-btn:hover {
+            background-color: #0084c7;
+        }
+        
+        .microsoft-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
         
         .error-message {
@@ -86,6 +77,26 @@
             border: 1px solid #d13438;
             font-size: 14px;
             display: none;
+        }
+        
+        .success-message {
+            background-color: #dff6dd;
+            color: #107c10;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #107c10;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .loading-spinner.active {
+            display: block;
         }
         
         .admin-link {
@@ -108,24 +119,27 @@
     <div class="login-container">
         <div class="login-header">
             <h1>Inventory Entry Login</h1>
-            <p>Enter your name and password to access the entry page</p>
+            <p>Sign in with your Microsoft account to access the entry page</p>
         </div>
         
         <div id="error-message" class="error-message"></div>
+        <div id="success-message" class="success-message"></div>
         
-        <form class="login-form" id="login-form">
-            <div class="form-group">
-                <label for="user-name">Your Name:</label>
-                <input type="text" id="user-name" required placeholder="Enter your name">
-            </div>
-            
-            <div class="form-group">
-                <label for="user-password">Password:</label>
-                <input type="password" id="user-password" required placeholder="Enter password">
-            </div>
-            
-            <button type="submit" class="login-btn">Login</button>
-        </form>
+        <div class="login-form">
+            <button id="microsoft-login-btn" class="microsoft-btn" onclick="handleMicrosoftLogin()">
+                <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                    <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                    <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Sign in with Microsoft
+            </button>
+        </div>
+        
+        <div id="loading-spinner" class="loading-spinner">
+            <p>Signing in...</p>
+        </div>
         
         <div class="admin-link">
             <a href="admin/login.html">Admin Panel Login →</a>
@@ -133,52 +147,106 @@
     </div>
     
     <script>
-        // User password for entry page
-        const USER_PASSWORD = 'User@123';
-        
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const userName = document.getElementById('user-name').value.trim();
-            const password = document.getElementById('user-password').value;
-            const errorMessage = document.getElementById('error-message');
-            
-            // Validate name is not empty
-            if (!userName) {
-                errorMessage.textContent = 'Please enter your name.';
-                errorMessage.style.display = 'block';
-                return;
-            }
-            
-            if (password === USER_PASSWORD) {
-                // Store authentication and user name in session storage
-                sessionStorage.setItem('userAuthenticated', 'true');
-                sessionStorage.setItem('userAuthTime', Date.now().toString());
-                sessionStorage.setItem('userName', userName);
-                
-                // Redirect to entry page
-                window.location.href = 'index.html';
-            } else {
-                errorMessage.textContent = 'Incorrect password. Please try again.';
-                errorMessage.style.display = 'block';
-                document.getElementById('user-password').value = '';
-            }
-        });
-        
         // Check if already authenticated
-        if (sessionStorage.getItem('userAuthenticated') === 'true') {
-            const authTime = parseInt(sessionStorage.getItem('userAuthTime') || '0');
-            const currentTime = Date.now();
-            
-            // Session expires after 8 hours
-            if (currentTime - authTime < 8 * 60 * 60 * 1000) {
-                window.location.href = 'index.html';
-            } else {
-                sessionStorage.removeItem('userAuthenticated');
-                sessionStorage.removeItem('userAuthTime');
-                sessionStorage.removeItem('userName');
+        async function checkExistingSession() {
+            try {
+                const session = await getSession();
+                if (session) {
+                    const authTime = new Date(session.expires_at).getTime();
+                    const currentTime = Date.now();
+                    
+                    // Session expires after 8 hours
+                    if (currentTime < authTime) {
+                        window.location.href = 'index.html';
+                    } else {
+                        await signOut();
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking session:', error);
             }
         }
+        
+        // Handle Microsoft login
+        async function handleMicrosoftLogin() {
+            const loginBtn = document.getElementById('microsoft-login-btn');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            
+            // Show loading state
+            loginBtn.disabled = true;
+            loadingSpinner.classList.add('active');
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            try {
+                // Sign in with Microsoft OAuth
+                await signInWithMicrosoft();
+                // Redirect will happen automatically via Supabase
+            } catch (error) {
+                console.error('Microsoft login error:', error);
+                errorMessage.textContent = 'Error signing in with Microsoft. Please try again.';
+                errorMessage.style.display = 'block';
+                loginBtn.disabled = false;
+                loadingSpinner.classList.remove('active');
+            }
+        }
+        
+        // Handle redirect after successful login
+        async function handleRedirect() {
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            
+            try {
+                // Get session after redirect
+                const session = await getSession();
+                
+                if (session) {
+                    const user = session.user;
+                    const userName = user.user_metadata?.full_name || user.email || user.user_metadata?.name || 'User';
+                    
+                    // Store authentication info
+                    sessionStorage.setItem('userAuthenticated', 'true');
+                    sessionStorage.setItem('userAuthTime', Date.now().toString());
+                    sessionStorage.setItem('userName', userName);
+                    sessionStorage.setItem('userEmail', user.email);
+                    
+                    successMessage.textContent = 'Login successful! Redirecting...';
+                    successMessage.style.display = 'block';
+                    
+                    // Redirect to entry page
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                } else {
+                    errorMessage.textContent = 'Login failed. Please try again.';
+                    errorMessage.style.display = 'block';
+                    loadingSpinner.classList.remove('active');
+                }
+            } catch (error) {
+                console.error('Error handling redirect:', error);
+                errorMessage.textContent = 'Error completing login. Please try again.';
+                errorMessage.style.display = 'block';
+                loadingSpinner.classList.remove('active');
+            }
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if this is a redirect from Microsoft OAuth
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasCode = urlParams.has('code') || urlParams.has('access_token');
+            
+            if (hasCode) {
+                // Handle the redirect
+                handleRedirect();
+            } else {
+                // Check for existing session
+                checkExistingSession();
+            }
+        });
     </script>
 </body>
 </html>
